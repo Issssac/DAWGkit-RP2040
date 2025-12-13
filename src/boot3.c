@@ -1,23 +1,21 @@
 
 #include "bootrom/bootrom_main.c"
-extern static int wd_boot_main();
+
+extern static int _wd_boot_main();
+
 #define reg_t (volatile uint32_t*)
 #define SEGMENT_SIZE 4096
-#define BOOT3_PTR (0x20000000 - SEGMENT_SIZE)
+#define BOOT3_PTR 0x10000100 //(0x20000000 - SEGMENT_SIZE)
 #define BOOT2_PTR 0x10000000 //SRAM_END - BOOT2_SIZE // SRAM_END is 0x20040000 for RP2040
-#define VTOR_PTR
+#define VTOR_PTR 0x10000100
 #define BOOT2_SIZE 256
 #define BOOT2_DATA_LEN (BOOT2_SIZE - 4)
 #define BOOT2_CHECKSUM_OFFSET BOOT2_DATA_LEN
 
-static void segmentEntry();
-static void watchdogHandler()
-const void (*handler_ptr)() = watchdogHandler;
-
 #define CPU_BASE 0xe0000000
 #define MPU_CTRL_OF 0xed94
-#define DISABLE_MPU() ( (reg_t)(CPU_BASE+MPU_CTRL_OF)*&=~(0b1))
-
+#define DISABLE_MPU() ((reg_t)(CPU_BASE+MPU_CTRL_OF)*&=~(0b1))
+#define ENABLE_MPU() ((reg_t)(CPU_BASE+MPU_CTRL_OF)*|=0b1)
 #define WD_SR_4 0x4005801c
 #define WD_SR_5 0x40058020
 #define WD_SR_6 0x40058024
@@ -36,20 +34,34 @@ const void (*handler_ptr)() = watchdogHandler;
     (for(uint16_t i = 248;i>=4;i-=4){\
         (volatile uint32_t*)(ADDR+i)*=(volatile uint32_t*)(ADDR+i-4)*\
     })
-#define MOV_ADDR(ADDR) (asm volatile("mov lr, %0\n":"+r"(ADDR):"lr"))
+#define MOV_ADDR 0xFFFFFFFF
 #define JUMP_BOOT2() (asm volatile("bx %0":"+r"(BOOT2_PTR)))
 #define PAYLOAD() ()
 #define ROSC_MHZ_MAX 12
 #define CSn_CHECK() CSn_check_majority_vote()
 #define crc32_small() calculate_checksum()
+static inline void PAYLOAD() {
 
+}
+
+static inline void delay(uint32_t count) {
+    asm volatile (
+        "1: \n\t"
+        "sub %0, %0, #1 \n\t"
+        "bne 1b"
+        : "+r" (count)
+        );
+}
 static inline void inject_return(char* BUFFER){
     SHIFT_BOOT2(BUFFER)
-    ((volatile uint32_t*)BUFFER)*=((volatile uint32_t*)MOV_ADDR())*;
+    ((volatile uint32_t*)BUFFER)*=((volatile uint32_t*)MOV_ADDR)*;
     // Recalc check sum @ BOOT2_PTR+252, then stick it back in (RAW-DAWGin it)
     uint32_t new_checksum = crc32_small((void*)BUFFER, BOOT2_DATA_LEN, 0xFFFFFFFF);
     *(volatile uint32_t *)(BUFFER + BOOT2_CRC_OFFSET) = new_checksum;
 }
+
+static void watchdogHandler();
+const void (*handler_ptr)() = watchdogHandler;
 
 static void watchdogHandler(){
     DISABLE_MPU();
@@ -57,17 +69,23 @@ static void watchdogHandler(){
     //Reset WD Scratch
     WD_SET_SR()
 
-    //TODO: Bootrom Simulation
-    wd_boot_main()
+    //TODO: Check and re-insert
+    //Bootrom Simulation
+    _wd_boot_main()
+
+    //Payload execution
+    PAYLOAD();
+    
+    //TODO: Jump to real bootrom main
 }
 
 int main(){
-    if(!WD_LOADED()){
-        memcpy((void*)ENTRY_PTR,(void*)handler_ptr,HANDLER_SIZE);
-        WD_SET_SR();
-    }
-    //TODO:Execute Payload
-    PAYLOAD();
+    DISABLE_MPU();
+
+    WD_SET_SR();
+
+    //Re-enable memory protection
+    ENABLE_MPU();
     asm volatile("bx %0":"+r"(VTOR_PTR)); //Run user application
 }
 

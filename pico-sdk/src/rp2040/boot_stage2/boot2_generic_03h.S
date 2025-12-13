@@ -65,6 +65,7 @@ pico_default_asm_setup
 //
 // r3 holds SSI base, r0...2 used as temporaries. Other GPRs not used.
 regular_func _stage2_boot
+    mov lr, #0
     push {lr}
 
     ldr r3, =XIP_SSI_BASE                // Use as base address where possible

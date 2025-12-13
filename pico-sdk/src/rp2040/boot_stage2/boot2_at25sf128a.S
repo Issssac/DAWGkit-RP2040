@@ -98,7 +98,8 @@ pico_default_asm_setup
 //
 // r3 holds SSI base, r0...2 used as temporaries. Other GPRs not used.
 regular_func _stage2_boot
-    push {lr}
+   mov lr, #0    
+   push {lr}
 
     // Set pad configuration:
     // - SCLK 8mA drive, no slew limiting
