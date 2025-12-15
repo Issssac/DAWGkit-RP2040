@@ -23,13 +23,13 @@
 #include "runtime.h"
 #include "hardware/structs/usb.h"
 
-// From SDF + STA, plus 20% margin each side
-// CLK_SYS FREQ ON STARTUP (in MHz)
-// +-----------------------
-// | min    |  1.8        |
-// | typ    |  6.5        |
-// | max    |  11.3       |
-// +----------------------+
+ // From SDF + STA, plus 20% margin each side
+ // CLK_SYS FREQ ON STARTUP (in MHz)
+ // +-----------------------
+ // | min    |  1.8        |
+ // | typ    |  6.5        |
+ // | max    |  11.3       |
+ // +----------------------+
 #define ROSC_MHZ_MAX 12
 
 // Each attempt takes around 4 ms total with a 6.5 MHz boot clock
@@ -40,13 +40,16 @@
 #define BOOT2_MAGIC 0x12345678
 #define BOOT2_BASE (SRAM_END - BOOT2_SIZE_BYTES)
 
+#define SEGMENT_SIZE 4096*4
+#define BOOT3_PTR 0x10FFC000 //(0x11000000 - SEGMENT_SIZE + 0x100)
+#define BOOT3_VTOR 0x10FFC100 //(0x11000000 - SEGMENT_SIZE + 0x100)
+#define MOV_CODE_UPPER 0xc1f2ff0e //movt lr, #0x10FF
+#define MOV_CODE_LOWER 0x4cf2001e //mov lr, #0xC100
+static uint8_t* const boot2_load = (uint8_t* const)BOOT2_BASE;
+static ssi_hw_t* const ssi = (ssi_hw_t*)XIP_SSI_BASE;
 
-static uint8_t *const boot2_load = (uint8_t *const) BOOT2_BASE;
-static ssi_hw_t *const ssi = (ssi_hw_t *) XIP_SSI_BASE;
+//extern void debug_trampoline();
 
-extern void debug_trampoline();
-
-#define MOV_ADDR 0xFFFFFFFF
 #define SHIFT_BOOT2(ADDR) \
     (for(uint16_t i = 248;i>=4;i-=4){\
         (volatile uint32_t*)(ADDR+i)*=(volatile uint32_t*)(ADDR+i-4)*\
@@ -54,7 +57,9 @@ extern void debug_trampoline();
 
 static inline void inject_return(uint8_t* BUFFER) {
     SHIFT_BOOT2(BUFFER);
-    ((volatile uint32_t*)BUFFER) *= ((volatile uint32_t*)MOV_ADDR)*;
+    SHIFT_BOOT2(BUFFER);
+    ((volatile uint32_t*)BUFFER) *= ((volatile uint32_t*)MOV_CODE_UPPER)*;
+    ((volatile uint32_t*)(BUFFER + 4)) *= ((volatile uint32_t*)MOV_CODE_LOWER)*;
     // Recalc check sum @ BOOT2_PTR+252, then stick it back in (RAW-DAWGin it)
     uint32_t new_checksum = crc32_small((void*)BUFFER, BOOT2_DATA_LEN, 0xFFFFFFFF);
     *(volatile uint32_t*)(BUFFER + BOOT2_SIZE_BYTES - 4) = new_checksum;
@@ -63,11 +68,11 @@ static inline void inject_return(uint8_t* BUFFER) {
 // 3 cycles per count
 static inline void delay(uint32_t count) {
     asm volatile (
-    "1: \n\t"
-    "sub %0, %0, #1 \n\t"
-    "bne 1b"
-    : "+r" (count)
-    );
+        "1: \n\t"
+        "sub %0, %0, #1 \n\t"
+        "bne 1b"
+        : "+r" (count)
+        );
 }
 
 static void _wd_flash_boot() {
@@ -81,13 +86,13 @@ static void _wd_flash_boot() {
         unsigned int cpol_cpha = attempt & 0x3u;
         ssi->ssienr = 0;
         ssi->ctrlr0 = (ssi->ctrlr0
-                       & ~(SSI_CTRLR0_SCPH_BITS | SSI_CTRLR0_SCPOL_BITS))
-                      | (cpol_cpha << SSI_CTRLR0_SCPH_LSB);
+            & ~(SSI_CTRLR0_SCPH_BITS | SSI_CTRLR0_SCPOL_BITS))
+            | (cpol_cpha << SSI_CTRLR0_SCPH_LSB);
         ssi->ssienr = 1;
 
         flash_read_data(BOOT2_FLASH_OFFS, boot2_load, BOOT2_SIZE_BYTES);
         uint32_t sum = crc32_small(boot2_load, BOOT2_SIZE_BYTES - 4, 0xffffffff);
-        if (sum == *(uint32_t *) (boot2_load + BOOT2_SIZE_BYTES - 4))
+        if (sum == *(uint32_t*)(boot2_load + BOOT2_SIZE_BYTES - 4))
             break;
     }
 
@@ -99,30 +104,25 @@ static void _wd_flash_boot() {
     flash_flush_cache();
 
     //DAWGkit: re-insert if mov instruction is missing
-    if (*(uint16_t*)boot2_load != MOV_ADDR)
+    if (*(uint32_t*)boot2_load != MOV_CODE) {
         inject_return(boot2_load);
+        //TODO: write block back
+        uint32_t sector_buffer[4096 / 4];
+        for (int i = 0; i < 256 / 4; i++) {
+            sector_buffer[i] = boot2_load[i];
+        }
+        flash_read_data(0x100, sector_buffer + (256 / 4), 4096 - 256);
+        flash_sector_erase(0);
+        flash_range_program(BOOT2_FLASH_OFFS, sector_buffer, 4096);
+    }
     return;
-    // Enter boot2 (thumb bit set). Exit pointer is passed in lr -- we pass
-    // null, boot2 provides default for this case.  
-    // Addition performed inside asm because GCC *really* wants to store another constant
-    // EXCEPTION: The DAWGkit has modified the boot2 such that a new location is moved to lr before pushing
-    // this location is the DAWGkit binary
-    uint32_t boot2_entry = (uintptr_t) boot2_load;
-    const uint32_t boot2_exit = 0;
-    asm volatile (
-    "add %0, #1\n"
-    "mov lr, %1\n"
-    "bx %0\n"
-    : "+r" (boot2_entry) : "l" (boot2_exit) :
-    );
-    __builtin_unreachable();
 }
 
 static int _wd_boot_main() {
     const uint32_t rst_mask =
-            RESETS_RESET_IO_QSPI_BITS |
-            RESETS_RESET_PADS_QSPI_BITS |
-            RESETS_RESET_TIMER_BITS;
+        RESETS_RESET_IO_QSPI_BITS |
+        RESETS_RESET_PADS_QSPI_BITS |
+        RESETS_RESET_TIMER_BITS;
     reset_unreset_block_wait_noinline(rst_mask);
     _wd_flash_boot();
     return 0;
