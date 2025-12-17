@@ -7,7 +7,7 @@
 #ifndef _USB_BOOT_DEVICE_H
 #define _USB_BOOT_DEVICE_H
 
-#include "usb_device.h"
+//#include "usb_device.h"
 
 #define VENDOR_ID   0x2e8au
 #define PRODUCT_ID  0x0003u

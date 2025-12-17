@@ -9,7 +9,7 @@
 #include "hardware/structs/ssi.h"
 #include "hardware/structs/xip_ctrl.h"
 #include "hardware/resets.h"
-#include "program_flash_generic.h"
+
 #include "resets.h"
 
 // These are supported by almost any SPI flash
@@ -39,7 +39,7 @@ check_hw_layout(ssi_hw_t, spi_ctrlr0, SSI_SPI_CTRLR0_OFFSET);
 void __noinline connect_internal_flash() {
     // Use hard reset to force IO and pad controls to known state (don't touch
     // IO_BANK0 as that does not affect XIP signals)
-    reset_unreset_block_wait_noinline(RESETS_RESET_IO_QSPI_BITS | RESETS_RESET_PADS_QSPI_BITS);
+    fake_reset_unreset_block_wait_noinline(RESETS_RESET_IO_QSPI_BITS | RESETS_RESET_PADS_QSPI_BITS);
 
     // Then mux XIP block onto internal QSPI flash pads
     io_rw_32 *iobank1 = (io_rw_32 *) IO_QSPI_BASE;

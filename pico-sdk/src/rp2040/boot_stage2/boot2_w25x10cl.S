@@ -33,6 +33,7 @@
 #include "pico/asm_helper.S"
 #include "hardware/regs/addressmap.h"
 #include "hardware/regs/ssi.h"
+#include "DAWG_LOC.h"
 
 // The serial flash interface will run at clk_sys/PICO_FLASH_SPI_CLKDIV.
 // This must be an even number.
@@ -83,7 +84,8 @@ pico_default_asm_setup
 //
 // r3 holds SSI base, r0...2 used as temporaries. Other GPRs not used.
 regular_func _stage2_boot
-    mov lr, #0x10FFC100
+    mov lr, =(DEST_LOWER)
+    movt lr, =(DEST_UPPER)
     push {lr}
     ldr r3, =XIP_SSI_BASE                // Use as base address where possible
 

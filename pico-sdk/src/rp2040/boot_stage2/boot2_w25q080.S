@@ -30,6 +30,7 @@
 #include "hardware/regs/addressmap.h"
 #include "hardware/regs/ssi.h"
 #include "hardware/regs/pads_qspi.h"
+#include "DAWG_LOC.h"
 
 // ----------------------------------------------------------------------------
 // Config section
@@ -98,8 +99,11 @@ pico_default_asm_setup
 //
 // r3 holds SSI base, r0...2 used as temporaries. Other GPRs not used.
 regular_func _stage2_boot
-    mov lr, #0x10FFC100
-    push {lr}
+    movs  r0, #0x11
+    lsls r0, r0, #12
+    subs r0, r0, #4
+    lsls r0, r0, #12
+    push {r0}
 
     // Set pad configuration:
     // - SCLK 8mA drive, no slew limiting

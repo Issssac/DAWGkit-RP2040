@@ -9,8 +9,8 @@
 
 #include "pico/types.h"
 
-void reset_block_noinline(uint32_t mask);
-void unreset_block_wait_noinline(uint32_t mask);
-void reset_unreset_block_wait_noinline(uint32_t mask);
+void fake_reset_block_noinline(uint32_t mask);
+void fake_unreset_block_wait_noinline(uint32_t mask);
+void fake_reset_unreset_block_wait_noinline(uint32_t mask);
 
 #endif

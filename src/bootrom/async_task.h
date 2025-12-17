@@ -9,7 +9,7 @@
 
 // Simple async task without real locking... tasks execute in thread mode, they are queued by IRQs and state management and completion callbacks called with IRQs disabled
 // which effectively means everything but the task execution is single threaded; as such the task should used async_task structure for all input/output
-#include "runtime.h"
+//#include "runtime.h"
 
 #define ASYNC_TASK_REQUIRE_TASK_CALLBACK
 // bit field for task type

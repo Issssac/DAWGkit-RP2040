@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "program_flash_generic.h"
+
 #include "hardware/structs/clocks.h"
 #include "hardware/structs/pll.h"
 #include "hardware/structs/rosc.h"
@@ -15,14 +15,14 @@
 #include "hardware/structs/xosc.h"
 #include "hardware/sync.h"
 #include "hardware/resets.h"
-#include "usb_boot_device.h"
+#include "hardware/structs/usb.h"
+#include <stdlib.h>
+//#include "usb_boot_device.h"
 #include "resets.h"
-
-#include "async_task.h"
+#include "program_flash_generic.h"
+//#include "async_task.h"
 #include "bootrom_crc32.h"
 #include "runtime.h"
-#include "hardware/structs/usb.h"
-
  // From SDF + STA, plus 20% margin each side
  // CLK_SYS FREQ ON STARTUP (in MHz)
  // +-----------------------
@@ -38,31 +38,35 @@
 #define BOOT2_SIZE_BYTES 256
 #define BOOT2_FLASH_OFFS 0
 #define BOOT2_MAGIC 0x12345678
-#define BOOT2_BASE (SRAM_END - BOOT2_SIZE_BYTES)
+#define BOOT2_BASE 0x2004000
 
-#define SEGMENT_SIZE 4096*4
-#define BOOT3_PTR 0x10FFC000 //(0x11000000 - SEGMENT_SIZE + 0x100)
-#define BOOT3_VTOR 0x10FFC100 //(0x11000000 - SEGMENT_SIZE + 0x100)
-#define MOV_CODE_UPPER 0xc1f2ff0e //movt lr, #0x10FF
-#define MOV_CODE_LOWER 0x4cf2001e //mov lr, #0xC100
+#define BOOT3_PTR 0x10ffd000
+#define BOOT3_VTOR 0x20040000
+
+#define ASM1 0x2011
+#define ASM2 0x0300
+#define ASM3 0x3804
+#define ASM4 0x0300
+#define ASM5 0xb401
+
 static uint8_t* const boot2_load = (uint8_t* const)BOOT2_BASE;
 static ssi_hw_t* const ssi = (ssi_hw_t*)XIP_SSI_BASE;
 
 //extern void debug_trampoline();
 
-#define SHIFT_BOOT2(ADDR) \
-    (for(uint16_t i = 248;i>=4;i-=4){\
-        (volatile uint32_t*)(ADDR+i)*=(volatile uint32_t*)(ADDR+i-4)*\
-    })
-
 static inline void inject_return(uint8_t* BUFFER) {
-    SHIFT_BOOT2(BUFFER);
-    SHIFT_BOOT2(BUFFER);
-    ((volatile uint32_t*)BUFFER) *= ((volatile uint32_t*)MOV_CODE_UPPER)*;
-    ((volatile uint32_t*)(BUFFER + 4)) *= ((volatile uint32_t*)MOV_CODE_LOWER)*;
+    ((uint16_t*)BUFFER)[0] = ASM5;
+    uint16_t NEW_BOOT2[256 / 2];
+    for (int i = 0; i < (256/2)-4; i++) {
+        NEW_BOOT2[i + 4] = ((volatile uint16_t*)BUFFER)[i];
+    }
+    NEW_BOOT2[0] = ASM1;
+    NEW_BOOT2[1] = ASM2;
+    NEW_BOOT2[2] = ASM3;
+    NEW_BOOT2[3] = ASM4;
     // Recalc check sum @ BOOT2_PTR+252, then stick it back in (RAW-DAWGin it)
-    uint32_t new_checksum = crc32_small((void*)BUFFER, BOOT2_DATA_LEN, 0xFFFFFFFF);
-    *(volatile uint32_t*)(BUFFER + BOOT2_SIZE_BYTES - 4) = new_checksum;
+    uint32_t new_checksum = crc32_small((void*)NEW_BOOT2, BOOT2_SIZE_BYTES-4, 0xFFFFFFFF);
+    *(volatile uint32_t*)((uint8_t*)NEW_BOOT2 + BOOT2_SIZE_BYTES - 4) = new_checksum;
 }
 
 // 3 cycles per count
@@ -76,7 +80,7 @@ static inline void delay(uint32_t count) {
 }
 
 static void _wd_flash_boot() {
-    connect_internal_flash();
+    /*connect_internal_flash();
     flash_exit_xip();
 
     // Repeatedly poll flash read with all CPOL CPHA combinations until we
@@ -101,29 +105,33 @@ static void _wd_flash_boot() {
 
     // Take this opportunity to flush the flash cache, as the debugger may have
     // written fresh code in behind it.
-    flash_flush_cache();
+    flash_flush_cache();*/
 
     //DAWGkit: re-insert if mov instruction is missing
-    if (*(uint32_t*)boot2_load != MOV_CODE) {
+    flash_read_data(BOOT2_FLASH_OFFS, boot2_load, BOOT2_SIZE_BYTES);
+    if (*(uint16_t*)boot2_load != ASM1) {
         inject_return(boot2_load);
         //TODO: write block back
-        uint32_t sector_buffer[4096 / 4];
+        uint32_t* sector_buffer = malloc(4096);
         for (int i = 0; i < 256 / 4; i++) {
             sector_buffer[i] = boot2_load[i];
         }
-        flash_read_data(0x100, sector_buffer + (256 / 4), 4096 - 256);
+        flash_read_data(0x100, (uint8_t*)(sector_buffer + (256 / 4)), 4096 - 256);
         flash_sector_erase(0);
-        flash_range_program(BOOT2_FLASH_OFFS, sector_buffer, 4096);
+        flash_range_program(BOOT2_FLASH_OFFS, (uint8_t*)sector_buffer, 4096);
+        free(sector_buffer);
     }
     return;
 }
 
 static int _wd_boot_main() {
+    
+    /*
     const uint32_t rst_mask =
         RESETS_RESET_IO_QSPI_BITS |
         RESETS_RESET_PADS_QSPI_BITS |
         RESETS_RESET_TIMER_BITS;
-    reset_unreset_block_wait_noinline(rst_mask);
+    fake_reset_unreset_block_wait_noinline(rst_mask);*/
     _wd_flash_boot();
     return 0;
 }
