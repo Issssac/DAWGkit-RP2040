@@ -36,7 +36,7 @@ check_hw_layout(ssi_hw_t, spi_ctrlr0, SSI_SPI_CTRLR0_OFFSET);
 // Setup and generic access functions
 
 // Connect the XIP controller to the flash pads
-void __noinline connect_internal_flash() {
+void __noinline f_connect_internal_flash() {
     // Use hard reset to force IO and pad controls to known state (don't touch
     // IO_BANK0 as that does not affect XIP signals)
     fake_reset_unreset_block_wait_noinline(RESETS_RESET_IO_QSPI_BITS | RESETS_RESET_PADS_QSPI_BITS);
@@ -62,7 +62,7 @@ void __noinline connect_internal_flash() {
 // This is only called by flash_exit_xip(), not by any of the other functions.
 // This makes it possible for the debugger or user code to edit SPI settings
 // e.g. baud rate, CPOL/CPHA.
-void flash_init_spi() {
+void f_flash_init_spi() {
     // Disable SSI for further config
     ssi->ssienr = 0;
     // Clear sticky errors (clear-on-read)
@@ -90,7 +90,7 @@ typedef enum {
 // Flash code may be heavily interrupted (e.g. if we are running USB MSC
 // handlers concurrently with flash programming) so we control the CS pin
 // manually
-static void __noinline flash_cs_force(outover_t over) {
+static void __noinline f_flash_cs_force(outover_t over) {
     io_rw_32 *reg = (io_rw_32 *) (IO_QSPI_BASE + IO_QSPI_GPIO_QSPI_SS_CTRL_OFFSET);
 #ifndef GENERAL_SIZE_HACKS
     *reg = *reg & ~IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_BITS
@@ -111,7 +111,7 @@ static void __noinline flash_cs_force(outover_t over) {
 // If rx_skip is nonzero, this many bytes will first be consumed from the FIFO,
 // before reading a further count bytes into *rx.
 // E.g. if you have written a command+address just before calling this function.
-void __noinline flash_put_get(const uint8_t *tx, uint8_t *rx, size_t count, size_t rx_skip) {
+void __noinline f_flash_put_get(const uint8_t *tx, uint8_t *rx, size_t count, size_t rx_skip) {
     // Make sure there is never more data in flight than the depth of the RX
     // FIFO. Otherwise, when we are interrupted for long periods, hardware
     // will overflow the RX FIFO.
@@ -140,25 +140,25 @@ void __noinline flash_put_get(const uint8_t *tx, uint8_t *rx, size_t count, size
             }
         }
         // APB load costs 4 cycles, so only do it on idle loops (our budget is 48 cyc/byte)
-        if (!did_something && __builtin_expect(flash_was_aborted(), 0))
+        if (!did_something && __builtin_expect(f_flash_was_aborted(), 0))
             break;
     }
-    flash_cs_force(OUTOVER_HIGH);
+    f_flash_cs_force(OUTOVER_HIGH);
 }
 
 // Convenience wrapper for above
 // (And it's hard for the debug host to get the tight timing between
 // cmd DR0 write and the remaining data)
-void flash_do_cmd(uint8_t cmd, const uint8_t *tx, uint8_t *rx, size_t count) {
-    flash_cs_force(OUTOVER_LOW);
+void f_flash_do_cmd(uint8_t cmd, const uint8_t *tx, uint8_t *rx, size_t count) {
+    f_flash_cs_force(OUTOVER_LOW);
     ssi->dr0 = cmd;
-    flash_put_get(tx, rx, count, 1);
+    f_flash_put_get(tx, rx, count, 1);
 }
 
 
 // Timing of this one is critical, so do not expose the symbol to debugger etc
-static inline void flash_put_cmd_addr(uint8_t cmd, uint32_t addr) {
-    flash_cs_force(OUTOVER_LOW);
+static inline void f_flash_put_cmd_addr(uint8_t cmd, uint32_t addr) {
+    f_flash_cs_force(OUTOVER_LOW);
     addr |= cmd << 24;
     for (int i = 0; i < 4; ++i) {
         ssi->dr0 = addr >> 24;
@@ -184,14 +184,14 @@ struct sd_padctrl {
 // Part 4 is the sequence suggested in W25X10CL datasheet.
 // Parts 1 and 2 are to improve compatibility with Micron parts
 
-void __noinline flash_exit_xip() {
+void __noinline f_flash_exit_xip() {
     struct sd_padctrl *qspi_sd_padctrl = (struct sd_padctrl *) (PADS_QSPI_BASE + PADS_QSPI_GPIO_QSPI_SD0_OFFSET);
     io_rw_32 *qspi_ss_ioctrl = (io_rw_32 *) (IO_QSPI_BASE + IO_QSPI_GPIO_QSPI_SS_CTRL_OFFSET);
     uint8_t buf[2];
     buf[0] = 0xff;
     buf[1] = 0xff;
 
-    flash_init_spi();
+    f_flash_init_spi();
 
     uint32_t padctrl_save = qspi_sd_padctrl->sd0;
     uint32_t padctrl_tmp = (padctrl_save
@@ -201,7 +201,7 @@ void __noinline flash_exit_xip() {
 
     // First two 32-clock sequences
     // CSn is held high for the first 32 clocks, then asserted low for next 32
-    flash_cs_force(OUTOVER_HIGH);
+    f_flash_cs_force(OUTOVER_HIGH);
     for (int i = 0; i < 2; ++i) {
         // This gives 4 16-bit offset store instructions. Anything else seems to
         // produce a large island of constants
@@ -219,13 +219,13 @@ void __noinline flash_exit_xip() {
         : "+r" (delay_cnt)
         );
 
-        flash_put_get(NULL, NULL, 4, 0);
+        f_flash_put_get(NULL, NULL, 4, 0);
 
         padctrl_tmp = (padctrl_tmp
                        & ~PADS_QSPI_GPIO_QSPI_SD0_PDE_BITS)
                       | PADS_QSPI_GPIO_QSPI_SD0_PUE_BITS;
 
-        flash_cs_force(OUTOVER_LOW);
+        f_flash_cs_force(OUTOVER_LOW);
     }
 
     // Restore IO/pad controls, and send 0xff, 0xff. Put pullup on IO2/IO3 as
@@ -240,8 +240,8 @@ void __noinline flash_exit_xip() {
     qspi_sd_padctrl->sd2 = padctrl_save;
     qspi_sd_padctrl->sd3 = padctrl_save;
 
-    flash_cs_force(OUTOVER_LOW);
-    flash_put_get(buf, NULL, 2, 0);
+    f_flash_cs_force(OUTOVER_LOW);
+    f_flash_put_get(buf, NULL, 2, 0);
 
     *qspi_ss_ioctrl = 0;
 }
@@ -250,36 +250,36 @@ void __noinline flash_exit_xip() {
 // Programming
 
 // Poll the flash status register until the busy bit (LSB) clears
-static inline void flash_wait_ready() {
+static inline void f_flash_wait_ready() {
     uint8_t stat;
     do {
-        flash_do_cmd(FLASHCMD_READ_STATUS, NULL, &stat, 1);
+        f_flash_do_cmd(FLASHCMD_READ_STATUS, NULL, &stat, 1);
     } while (stat & 0x1 && !flash_was_aborted());
 }
 
 // Set the WEL bit (needed before any program/erase operation)
-static __noinline void flash_enable_write() {
-    flash_do_cmd(FLASHCMD_WRITE_ENABLE, NULL, NULL, 0);
+static __noinline void f_flash_enable_write() {
+    f_flash_do_cmd(FLASHCMD_WRITE_ENABLE, NULL, NULL, 0);
 }
 
 // Program a 256 byte page at some 256-byte-aligned flash address,
 // from some buffer in memory. Blocks until completion.
-void flash_page_program(uint32_t addr, const uint8_t *data) {
+void f_flash_page_program(uint32_t addr, const uint8_t *data) {
     assert(addr < 0x1000000);
     assert(!(addr & 0xffu));
-    flash_enable_write();
-    flash_put_cmd_addr(FLASHCMD_PAGE_PROGRAM, addr);
-    flash_put_get(data, NULL, 256, 4);
-    flash_wait_ready();
+    f_flash_enable_write();
+    f_flash_put_cmd_addr(FLASHCMD_PAGE_PROGRAM, addr);
+    f_flash_put_get(data, NULL, 256, 4);
+    f_flash_wait_ready();
 }
 
 // Program a range of flash with some data from memory.
 // Size is rounded up to nearest 256 bytes.
-void __noinline flash_range_program(uint32_t addr, const uint8_t *data, size_t count) {
+void __noinline f_flash_range_program(uint32_t addr, const uint8_t *data, size_t count) {
     assert(!(addr & 0xffu));
     uint32_t goal = addr + count;
     while (addr < goal && !flash_was_aborted()) {
-        flash_page_program(addr, data);
+        f_flash_page_program(addr, data);
         addr += 256;
         data += 256;
     }
@@ -290,7 +290,7 @@ void __noinline flash_range_program(uint32_t addr, const uint8_t *data, size_t c
 // context is locked up (e.g. if there is no flash device, and a hard pullup
 // on MISO pin -> SR read gives 0xff) and the host issues an abort in IRQ
 // context. Bit of a hack
-void flash_abort() {
+void f_flash_abort() {
     hw_set_bits(
             (io_rw_32 *) (IO_QSPI_BASE + IO_QSPI_GPIO_QSPI_SD1_CTRL_OFFSET),
             IO_QSPI_GPIO_QSPI_SD1_CTRL_INOVER_VALUE_LOW << IO_QSPI_GPIO_QSPI_SD1_CTRL_INOVER_LSB
@@ -299,7 +299,7 @@ void flash_abort() {
 
 // Also allow any unbounded loops to check whether the above abort condition
 // was asserted, and terminate early
-int flash_was_aborted() {
+int f_flash_was_aborted() {
     return *(io_rw_32 *) (IO_QSPI_BASE + IO_QSPI_GPIO_QSPI_SD1_CTRL_OFFSET)
            & IO_QSPI_GPIO_QSPI_SD1_CTRL_INOVER_BITS;
 }
@@ -311,17 +311,17 @@ int flash_was_aborted() {
 
 // Use some other command, supplied by user e.g. a block erase or a chip erase.
 // Despite the name, the user is not erased by this function.
-void flash_user_erase(uint32_t addr, uint8_t cmd) {
+void f_flash_user_erase(uint32_t addr, uint8_t cmd) {
     assert(addr < 0x1000000);
-    flash_enable_write();
-    flash_put_cmd_addr(cmd, addr);
-    flash_put_get(NULL, NULL, 0, 4);
-    flash_wait_ready();
+    f_flash_enable_write();
+    f_flash_put_cmd_addr(cmd, addr);
+    f_flash_put_get(NULL, NULL, 0, 4);
+    f_flash_wait_ready();
 }
 
 // Use a standard 20h 4k erase command:
-void flash_sector_erase(uint32_t addr) {
-    flash_user_erase(addr, FLASHCMD_SECTOR_ERASE);
+void f_flash_sector_erase(uint32_t addr) {
+    f_flash_user_erase(addr, FLASHCMD_SECTOR_ERASE);
 }
 
 // block_size must be a power of 2.
@@ -330,14 +330,14 @@ void flash_sector_erase(uint32_t addr) {
 // To use sector-erase only, set block_size to some value larger than flash,
 // e.g. 1ul << 31.
 // To override the default 20h erase cmd, set block_size == 4k.
-void __noinline flash_range_erase(uint32_t addr, size_t count, uint32_t block_size, uint8_t block_cmd) {
+void __noinline f_flash_range_erase(uint32_t addr, size_t count, uint32_t block_size, uint8_t block_cmd) {
     uint32_t goal = addr + count;
     while (addr < goal && !flash_was_aborted()) {
         if (!(addr & (block_size - 1)) && goal - addr >= block_size) {
-            flash_user_erase(addr, block_cmd);
+            f_flash_user_erase(addr, block_cmd);
             addr += block_size;
         } else {
-            flash_sector_erase(addr);
+            f_flash_sector_erase(addr);
             addr += 1ul << 12;
         }
     }
@@ -346,21 +346,21 @@ void __noinline flash_range_erase(uint32_t addr, size_t count, uint32_t block_si
 // ----------------------------------------------------------------------------
 // Read
 
-void __noinline flash_read_data(uint32_t addr, uint8_t *rx, size_t count) {
+void __noinline f_flash_read_data(uint32_t addr, uint8_t *rx, size_t count) {
     assert(addr < 0x1000000);
-    flash_put_cmd_addr(FLASHCMD_READ_DATA, addr);
-    flash_put_get(NULL, rx, count, 4);
+    f_flash_put_cmd_addr(FLASHCMD_READ_DATA, addr);
+    f_flash_put_get(NULL, rx, count, 4);
 }
 
 // ----------------------------------------------------------------------------
 // Size determination via SFDP or JEDEC ID (best effort)
 // Relevant XKCD is 927
 
-static inline void flash_read_sfdp(uint32_t addr, uint8_t *rx, size_t count) {
+static inline void f_flash_read_sfdp(uint32_t addr, uint8_t *rx, size_t count) {
     assert(addr < 0x1000000);
-    flash_put_cmd_addr(FLASHCMD_READ_SFDP, addr);
+    f_flash_put_cmd_addr(FLASHCMD_READ_SFDP, addr);
     ssi->dr0 = 0; // dummy byte
-    flash_put_get(NULL, rx, count, 5);
+    f_flash_put_get(NULL, rx, count, 5);
 }
 
 static inline __attribute__((always_inline)) uint32_t bytes_to_u32le(const uint8_t *b) {
@@ -369,11 +369,11 @@ static inline __attribute__((always_inline)) uint32_t bytes_to_u32le(const uint8
 
 // Return value >= 0: log 2 of flash size in bytes.
 // Return value < 0: unable to determine size.
-int __noinline flash_size_log2() {
+int __noinline f_flash_size_log2() {
     uint8_t rxbuf[16];
 
     // Check magic
-    flash_read_sfdp(0, rxbuf, 16);
+    f_flash_read_sfdp(0, rxbuf, 16);
     if (bytes_to_u32le(rxbuf) != ('S' | ('F' << 8) | ('D' << 16) | ('P' << 24)))
         goto sfdp_fail;
     // Skip NPH -- we don't care about nonmandatory parameters.
@@ -384,7 +384,7 @@ int __noinline flash_size_log2() {
         goto sfdp_fail;
 
     uint32_t param_table_ptr = bytes_to_u32le(rxbuf + 12) & 0xffffffu;
-    flash_read_sfdp(param_table_ptr, rxbuf, 8);
+    f_flash_read_sfdp(param_table_ptr, rxbuf, 8);
     uint32_t array_size_word = bytes_to_u32le(rxbuf + 4);
     // MSB set: array >= 2 Gbit, encoded as log2 of number of bits
     // MSB clear: array < 2 Gbit, encoded as direct bit count
@@ -405,7 +405,7 @@ int __noinline flash_size_log2() {
     sfdp_fail:
     // If no SFDP, it's common to encode log2 of main array size in second
     // byte of JEDEC ID
-    flash_do_cmd(FLASHCMD_READ_JEDEC_ID, NULL, rxbuf, 3);
+    f_flash_do_cmd(FLASHCMD_READ_JEDEC_ID, NULL, rxbuf, 3);
     uint8_t array_size_byte = rxbuf[2];
     // Confusingly this is log2 of size in bytes, not bits like SFDP. Sanity check:
     if (array_size_byte < 8 || array_size_byte > 34)
@@ -423,19 +423,19 @@ int __noinline flash_size_log2() {
 // doing cached XIP reads from the flash. Called by the bootrom before
 // entering flash second stage, and called by the debugger after flash
 // programming.
-void __noinline flash_flush_cache() {
+void __noinline f_flash_flush_cache() {
     xip_ctrl_hw->flush = 1;
     // Read blocks until flush completion
     (void) xip_ctrl_hw->flush;
     // Enable the cache
     hw_set_bits(&xip_ctrl_hw->ctrl, XIP_CTRL_EN_BITS);
-    flash_cs_force(OUTOVER_NORMAL);
+    f_flash_cs_force(OUTOVER_NORMAL);
 }
 
 // Put the SSI into a mode where XIP accesses translate to standard
 // serial 03h read commands. The flash remains in its default serial command
 // state, so will still respond to other commands.
-void __noinline flash_enter_cmd_xip() {
+void __noinline f_flash_enter_cmd_xip() {
     ssi->ssienr = 0;
     ssi->ctrlr0 =
             (SSI_CTRLR0_SPI_FRF_VALUE_STD << SSI_CTRLR0_SPI_FRF_LSB) |  // Standard 1-bit SPI serial frames

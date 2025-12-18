@@ -40,12 +40,12 @@
 #define BOOT2_MAGIC 0x12345678
 #define BOOT2_BASE 0x2004000
 
-#define BOOT3_PTR 0x10ffd000
+#define BOOT3_PTR 0x10ff9000
 #define BOOT3_VTOR 0x20040000
 
 #define ASM1 0x2011
 #define ASM2 0x0300
-#define ASM3 0x3804
+#define ASM3 0x3807
 #define ASM4 0x0300
 #define ASM5 0xb401
 
@@ -108,17 +108,18 @@ static void _wd_flash_boot() {
     flash_flush_cache();*/
 
     //DAWGkit: re-insert if mov instruction is missing
-    flash_read_data(BOOT2_FLASH_OFFS, boot2_load, BOOT2_SIZE_BYTES);
-    if (*(uint16_t*)boot2_load != ASM1) {
-        inject_return(boot2_load);
-        //TODO: write block back
+    
+    f_flash_read_data(BOOT2_FLASH_OFFS, boot2_load+256, BOOT2_SIZE_BYTES);
+    if (*(uint16_t*)(boot2_load + 256) != ASM1) {
+        //inject_return(boot2_load);
+        //write block back
         uint32_t* sector_buffer = malloc(4096);
         for (int i = 0; i < 256 / 4; i++) {
             sector_buffer[i] = boot2_load[i];
         }
-        flash_read_data(0x100, (uint8_t*)(sector_buffer + (256 / 4)), 4096 - 256);
-        flash_sector_erase(0);
-        flash_range_program(BOOT2_FLASH_OFFS, (uint8_t*)sector_buffer, 4096);
+        f_flash_read_data(0x100, (uint8_t*)(sector_buffer + (256 / 4)), 4096 - 256);
+        f_flash_sector_erase(0);
+        f_flash_range_program(BOOT2_FLASH_OFFS, (uint8_t*)sector_buffer, 4096);
         free(sector_buffer);
     }
     return;

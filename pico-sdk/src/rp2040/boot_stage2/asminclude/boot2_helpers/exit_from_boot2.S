@@ -18,7 +18,7 @@ check_return:
     beq vector_into_flash
     bx r0
 vector_into_flash:
-    ldr r0, =(XIP_BASE + 0x100)
+    ldr r0, =(0x10ff0000)
     ldr r1, =(PPB_BASE + M0PLUS_VTOR_OFFSET)
     str r0, [r1]
     ldmia r0, {r0, r1}

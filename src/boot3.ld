@@ -23,8 +23,8 @@
 
 MEMORY
 {
-    BOOT(rx) : ORIGIN = 0x10000000, LENGTH = 256
-    FLASH(rx) : ORIGIN = 0x10FFD000, LENGTH = 16k
+    BOOT2(rx) : ORIGIN = 0x10000000, LENGTH = 256
+    FLASH(rx) : ORIGIN = 0x10FF0000, LENGTH = 0x10000
     RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 256k
     SCRATCH_X(rwx) : ORIGIN = 0x20040000, LENGTH = 4k
     SCRATCH_Y(rwx) : ORIGIN = 0x20041000, LENGTH = 4k
@@ -41,13 +41,13 @@ SECTIONS
 
     .flash_begin : {
         __flash_binary_start = .;
-    } > BOOT
+    } > BOOT2
 
     .boot2 : {
         __boot2_start__ = .;
         KEEP (*(.boot2))
         __boot2_end__ = .;
-    } > BOOT
+    } > BOOT2
 
     ASSERT(__boot2_end__ - __boot2_start__ == 256,
         "ERROR: Pico second stage bootloader must be 256 bytes in size")
@@ -58,10 +58,6 @@ SECTIONS
        This can be used to transfer control back to the bootrom on debugger
        launches only, to perform proper flash setup.
     */
-
-    .boot3 : {
-	KEEP (*(.boot3))
-    } > FLASH
 
     .text : {
         __logical_binary_start = .;

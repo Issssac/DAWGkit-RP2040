@@ -3,21 +3,21 @@ C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/pico-sdk/src/rp2040/b
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn
-  0 .text         000000f8  20040000  20040000  00001000  2**2
+  0 .text         000000f0  20040000  20040000  00001000  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  1 .ARM.attributes 00000022  00000000  00000000  000010f8  2**0
+  1 .ARM.attributes 00000022  00000000  00000000  000010f0  2**0
                   CONTENTS, READONLY
-  2 .debug_line   000000f1  00000000  00000000  0000111a  2**0
+  2 .debug_line   000000ed  00000000  00000000  00001112  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
-  3 .debug_line_str 00000143  00000000  00000000  0000120b  2**0
+  3 .debug_line_str 00000143  00000000  00000000  000011ff  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
-  4 .debug_info   00000025  00000000  00000000  0000134e  2**0
+  4 .debug_info   00000025  00000000  00000000  00001342  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
-  5 .debug_abbrev 00000014  00000000  00000000  00001373  2**0
+  5 .debug_abbrev 00000014  00000000  00000000  00001367  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
-  6 .debug_aranges 00000020  00000000  00000000  00001388  2**3
+  6 .debug_aranges 00000020  00000000  00000000  00001380  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
-  7 .debug_str    000000ac  00000000  00000000  000013a8  2**0
+  7 .debug_str    000000ac  00000000  00000000  000013a0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/pico-sdk/src/rp2040/boot_stage2/bs2_default.elf:     file format elf32-littlearm
@@ -26,129 +26,125 @@ C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/pico-sdk/src/rp2040/b
 Disassembly of section .text:
 
 20040000 <_stage2_boot>:
-20040000:	2011      	movs	r0, #17
-20040002:	0300      	lsls	r0, r0, #12
-20040004:	3804      	subs	r0, #4
-20040006:	0300      	lsls	r0, r0, #12
-20040008:	b401      	push	{r0}
-2004000a:	4b32      	ldr	r3, [pc, #200]	@ (200400d4 <literals>)
-2004000c:	2021      	movs	r0, #33	@ 0x21
-2004000e:	6058      	str	r0, [r3, #4]
-20040010:	6898      	ldr	r0, [r3, #8]
-20040012:	2102      	movs	r1, #2
-20040014:	4388      	bics	r0, r1
-20040016:	6098      	str	r0, [r3, #8]
-20040018:	60d8      	str	r0, [r3, #12]
-2004001a:	6118      	str	r0, [r3, #16]
-2004001c:	6158      	str	r0, [r3, #20]
-2004001e:	4b2e      	ldr	r3, [pc, #184]	@ (200400d8 <literals+0x4>)
-20040020:	2100      	movs	r1, #0
-20040022:	6099      	str	r1, [r3, #8]
-20040024:	2102      	movs	r1, #2
-20040026:	6159      	str	r1, [r3, #20]
-20040028:	2101      	movs	r1, #1
-2004002a:	22f0      	movs	r2, #240	@ 0xf0
-2004002c:	5099      	str	r1, [r3, r2]
+20040000:	b500      	push	{lr}
+20040002:	4b32      	ldr	r3, [pc, #200]	@ (200400cc <literals>)
+20040004:	2021      	movs	r0, #33	@ 0x21
+20040006:	6058      	str	r0, [r3, #4]
+20040008:	6898      	ldr	r0, [r3, #8]
+2004000a:	2102      	movs	r1, #2
+2004000c:	4388      	bics	r0, r1
+2004000e:	6098      	str	r0, [r3, #8]
+20040010:	60d8      	str	r0, [r3, #12]
+20040012:	6118      	str	r0, [r3, #16]
+20040014:	6158      	str	r0, [r3, #20]
+20040016:	4b2e      	ldr	r3, [pc, #184]	@ (200400d0 <literals+0x4>)
+20040018:	2100      	movs	r1, #0
+2004001a:	6099      	str	r1, [r3, #8]
+2004001c:	2102      	movs	r1, #2
+2004001e:	6159      	str	r1, [r3, #20]
+20040020:	2101      	movs	r1, #1
+20040022:	22f0      	movs	r2, #240	@ 0xf0
+20040024:	5099      	str	r1, [r3, r2]
 
-2004002e <program_sregs>:
-2004002e:	492b      	ldr	r1, [pc, #172]	@ (200400dc <literals+0x8>)
-20040030:	6019      	str	r1, [r3, #0]
-20040032:	2101      	movs	r1, #1
-20040034:	6099      	str	r1, [r3, #8]
-20040036:	2035      	movs	r0, #53	@ 0x35
-20040038:	f000 f844 	bl	200400c4 <read_flash_sreg>
-2004003c:	2202      	movs	r2, #2
-2004003e:	4290      	cmp	r0, r2
-20040040:	d014      	beq.n	2004006c <skip_sreg_programming>
-20040042:	2106      	movs	r1, #6
-20040044:	6619      	str	r1, [r3, #96]	@ 0x60
-20040046:	f000 f834 	bl	200400b2 <wait_ssi_ready>
-2004004a:	6e19      	ldr	r1, [r3, #96]	@ 0x60
-2004004c:	2101      	movs	r1, #1
-2004004e:	6619      	str	r1, [r3, #96]	@ 0x60
-20040050:	2000      	movs	r0, #0
-20040052:	6618      	str	r0, [r3, #96]	@ 0x60
-20040054:	661a      	str	r2, [r3, #96]	@ 0x60
-20040056:	f000 f82c 	bl	200400b2 <wait_ssi_ready>
-2004005a:	6e19      	ldr	r1, [r3, #96]	@ 0x60
-2004005c:	6e19      	ldr	r1, [r3, #96]	@ 0x60
-2004005e:	6e19      	ldr	r1, [r3, #96]	@ 0x60
-20040060:	2005      	movs	r0, #5
-20040062:	f000 f82f 	bl	200400c4 <read_flash_sreg>
-20040066:	2101      	movs	r1, #1
-20040068:	4208      	tst	r0, r1
-2004006a:	d1f9      	bne.n	20040060 <program_sregs+0x32>
+20040026 <program_sregs>:
+20040026:	492b      	ldr	r1, [pc, #172]	@ (200400d4 <literals+0x8>)
+20040028:	6019      	str	r1, [r3, #0]
+2004002a:	2101      	movs	r1, #1
+2004002c:	6099      	str	r1, [r3, #8]
+2004002e:	2035      	movs	r0, #53	@ 0x35
+20040030:	f000 f844 	bl	200400bc <read_flash_sreg>
+20040034:	2202      	movs	r2, #2
+20040036:	4290      	cmp	r0, r2
+20040038:	d014      	beq.n	20040064 <skip_sreg_programming>
+2004003a:	2106      	movs	r1, #6
+2004003c:	6619      	str	r1, [r3, #96]	@ 0x60
+2004003e:	f000 f834 	bl	200400aa <wait_ssi_ready>
+20040042:	6e19      	ldr	r1, [r3, #96]	@ 0x60
+20040044:	2101      	movs	r1, #1
+20040046:	6619      	str	r1, [r3, #96]	@ 0x60
+20040048:	2000      	movs	r0, #0
+2004004a:	6618      	str	r0, [r3, #96]	@ 0x60
+2004004c:	661a      	str	r2, [r3, #96]	@ 0x60
+2004004e:	f000 f82c 	bl	200400aa <wait_ssi_ready>
+20040052:	6e19      	ldr	r1, [r3, #96]	@ 0x60
+20040054:	6e19      	ldr	r1, [r3, #96]	@ 0x60
+20040056:	6e19      	ldr	r1, [r3, #96]	@ 0x60
+20040058:	2005      	movs	r0, #5
+2004005a:	f000 f82f 	bl	200400bc <read_flash_sreg>
+2004005e:	2101      	movs	r1, #1
+20040060:	4208      	tst	r0, r1
+20040062:	d1f9      	bne.n	20040058 <program_sregs+0x32>
 
-2004006c <skip_sreg_programming>:
+20040064 <skip_sreg_programming>:
+20040064:	2100      	movs	r1, #0
+20040066:	6099      	str	r1, [r3, #8]
+
+20040068 <dummy_read>:
+20040068:	491b      	ldr	r1, [pc, #108]	@ (200400d8 <literals+0xc>)
+2004006a:	6019      	str	r1, [r3, #0]
 2004006c:	2100      	movs	r1, #0
-2004006e:	6099      	str	r1, [r3, #8]
+2004006e:	6059      	str	r1, [r3, #4]
+20040070:	491a      	ldr	r1, [pc, #104]	@ (200400dc <literals+0x10>)
+20040072:	481b      	ldr	r0, [pc, #108]	@ (200400e0 <literals+0x14>)
+20040074:	6001      	str	r1, [r0, #0]
+20040076:	2101      	movs	r1, #1
+20040078:	6099      	str	r1, [r3, #8]
+2004007a:	21eb      	movs	r1, #235	@ 0xeb
+2004007c:	6619      	str	r1, [r3, #96]	@ 0x60
+2004007e:	21a0      	movs	r1, #160	@ 0xa0
+20040080:	6619      	str	r1, [r3, #96]	@ 0x60
+20040082:	f000 f812 	bl	200400aa <wait_ssi_ready>
+20040086:	2100      	movs	r1, #0
+20040088:	6099      	str	r1, [r3, #8]
 
-20040070 <dummy_read>:
-20040070:	491b      	ldr	r1, [pc, #108]	@ (200400e0 <literals+0xc>)
-20040072:	6019      	str	r1, [r3, #0]
-20040074:	2100      	movs	r1, #0
-20040076:	6059      	str	r1, [r3, #4]
-20040078:	491a      	ldr	r1, [pc, #104]	@ (200400e4 <literals+0x10>)
-2004007a:	481b      	ldr	r0, [pc, #108]	@ (200400e8 <literals+0x14>)
-2004007c:	6001      	str	r1, [r0, #0]
-2004007e:	2101      	movs	r1, #1
-20040080:	6099      	str	r1, [r3, #8]
-20040082:	21eb      	movs	r1, #235	@ 0xeb
-20040084:	6619      	str	r1, [r3, #96]	@ 0x60
-20040086:	21a0      	movs	r1, #160	@ 0xa0
-20040088:	6619      	str	r1, [r3, #96]	@ 0x60
-2004008a:	f000 f812 	bl	200400b2 <wait_ssi_ready>
-2004008e:	2100      	movs	r1, #0
-20040090:	6099      	str	r1, [r3, #8]
+2004008a <configure_ssi>:
+2004008a:	4916      	ldr	r1, [pc, #88]	@ (200400e4 <literals+0x18>)
+2004008c:	4814      	ldr	r0, [pc, #80]	@ (200400e0 <literals+0x14>)
+2004008e:	6001      	str	r1, [r0, #0]
+20040090:	2101      	movs	r1, #1
+20040092:	6099      	str	r1, [r3, #8]
 
-20040092 <configure_ssi>:
-20040092:	4916      	ldr	r1, [pc, #88]	@ (200400ec <literals+0x18>)
-20040094:	4814      	ldr	r0, [pc, #80]	@ (200400e8 <literals+0x14>)
-20040096:	6001      	str	r1, [r0, #0]
-20040098:	2101      	movs	r1, #1
-2004009a:	6099      	str	r1, [r3, #8]
+20040094 <check_return>:
+20040094:	bc01      	pop	{r0}
+20040096:	2800      	cmp	r0, #0
+20040098:	d000      	beq.n	2004009c <vector_into_flash>
+2004009a:	4700      	bx	r0
 
-2004009c <check_return>:
-2004009c:	bc01      	pop	{r0}
-2004009e:	2800      	cmp	r0, #0
-200400a0:	d000      	beq.n	200400a4 <vector_into_flash>
-200400a2:	4700      	bx	r0
+2004009c <vector_into_flash>:
+2004009c:	4812      	ldr	r0, [pc, #72]	@ (200400e8 <literals+0x1c>)
+2004009e:	4913      	ldr	r1, [pc, #76]	@ (200400ec <literals+0x20>)
+200400a0:	6008      	str	r0, [r1, #0]
+200400a2:	c803      	ldmia	r0, {r0, r1}
+200400a4:	f380 8808 	msr	MSP, r0
+200400a8:	4708      	bx	r1
 
-200400a4 <vector_into_flash>:
-200400a4:	4812      	ldr	r0, [pc, #72]	@ (200400f0 <literals+0x1c>)
-200400a6:	4913      	ldr	r1, [pc, #76]	@ (200400f4 <literals+0x20>)
-200400a8:	6008      	str	r0, [r1, #0]
-200400aa:	c803      	ldmia	r0, {r0, r1}
-200400ac:	f380 8808 	msr	MSP, r0
-200400b0:	4708      	bx	r1
+200400aa <wait_ssi_ready>:
+200400aa:	b503      	push	{r0, r1, lr}
+200400ac:	6a99      	ldr	r1, [r3, #40]	@ 0x28
+200400ae:	2004      	movs	r0, #4
+200400b0:	4201      	tst	r1, r0
+200400b2:	d0fb      	beq.n	200400ac <wait_ssi_ready+0x2>
+200400b4:	2001      	movs	r0, #1
+200400b6:	4201      	tst	r1, r0
+200400b8:	d1f8      	bne.n	200400ac <wait_ssi_ready+0x2>
+200400ba:	bd03      	pop	{r0, r1, pc}
 
-200400b2 <wait_ssi_ready>:
-200400b2:	b503      	push	{r0, r1, lr}
-200400b4:	6a99      	ldr	r1, [r3, #40]	@ 0x28
-200400b6:	2004      	movs	r0, #4
-200400b8:	4201      	tst	r1, r0
-200400ba:	d0fb      	beq.n	200400b4 <wait_ssi_ready+0x2>
-200400bc:	2001      	movs	r0, #1
-200400be:	4201      	tst	r1, r0
-200400c0:	d1f8      	bne.n	200400b4 <wait_ssi_ready+0x2>
-200400c2:	bd03      	pop	{r0, r1, pc}
+200400bc <read_flash_sreg>:
+200400bc:	b502      	push	{r1, lr}
+200400be:	6618      	str	r0, [r3, #96]	@ 0x60
+200400c0:	6618      	str	r0, [r3, #96]	@ 0x60
+200400c2:	f7ff fff2 	bl	200400aa <wait_ssi_ready>
+200400c6:	6e18      	ldr	r0, [r3, #96]	@ 0x60
+200400c8:	6e18      	ldr	r0, [r3, #96]	@ 0x60
+200400ca:	bd02      	pop	{r1, pc}
 
-200400c4 <read_flash_sreg>:
-200400c4:	b502      	push	{r1, lr}
-200400c6:	6618      	str	r0, [r3, #96]	@ 0x60
-200400c8:	6618      	str	r0, [r3, #96]	@ 0x60
-200400ca:	f7ff fff2 	bl	200400b2 <wait_ssi_ready>
-200400ce:	6e18      	ldr	r0, [r3, #96]	@ 0x60
-200400d0:	6e18      	ldr	r0, [r3, #96]	@ 0x60
-200400d2:	bd02      	pop	{r1, pc}
-
-200400d4 <literals>:
-200400d4:	40020000 	.word	0x40020000
-200400d8:	18000000 	.word	0x18000000
-200400dc:	00070000 	.word	0x00070000
-200400e0:	005f0300 	.word	0x005f0300
-200400e4:	00002221 	.word	0x00002221
-200400e8:	180000f4 	.word	0x180000f4
-200400ec:	a0002022 	.word	0xa0002022
-200400f0:	10000100 	.word	0x10000100
-200400f4:	e000ed08 	.word	0xe000ed08
+200400cc <literals>:
+200400cc:	40020000 	.word	0x40020000
+200400d0:	18000000 	.word	0x18000000
+200400d4:	00070000 	.word	0x00070000
+200400d8:	005f0300 	.word	0x005f0300
+200400dc:	00002221 	.word	0x00002221
+200400e0:	180000f4 	.word	0x180000f4
+200400e4:	a0002022 	.word	0xa0002022
+200400e8:	10ff0000 	.word	0x10ff0000
+200400ec:	e000ed08 	.word	0xe000ed08

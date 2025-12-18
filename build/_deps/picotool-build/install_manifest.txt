@@ -1,7 +1,0 @@
-C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/_deps/picotool/picotool.exe
-C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/_deps/picotool/picotoolTargets.cmake
-C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/_deps/picotool/picotoolTargets-release.cmake
-C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/_deps/picotool/picotoolConfig.cmake
-C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/_deps/picotool/picotoolConfigVersion.cmake
-C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/_deps/picotool/enc_bootloader.elf
-C:/Users/Andy/Documents/Code/DAWG-Kit/DAWGkit-RP2040/build/_deps/picotool/enc_bootloader_mbedtls.elf
